@@ -8,10 +8,16 @@
   >
     <div class="vipBox" :class="{ isDark: isDark }">
       <h1 :class="{ isVIP: isVIP }" @click="showParty" ref="titleRef">
-        {{ isVIP ? '恭喜你，你已是终身会员~' : '终身会员，现在早鸟价，仅需：￥100' }}
+        {{ vipString }}
       </h1>
-      <div class="vipButton" v-if="!isVIP" @click="openPay">
-        <span class="text">点此开通会员</span>
+      <div class="expireTime" v-if="expireTime">到期时间：{{ expireTime }}</div>
+      <div class="btnList" v-if="!isVIP">
+        <div class="vipButton" @click="openPay">
+          <span class="text">点此开通终身会员</span>
+        </div>
+        <div class="vipButton minthVipButton" @click="openMonthPay">
+          <span class="text">先开一个月试试</span>
+        </div>
       </div>
       <h2>会员专享如下功能</h2>
       <div class="tableBox">
@@ -118,22 +124,41 @@ export default {
   data() {
     return {
       dialogVisible: false,
-      functionList
+      functionList,
+      expireTime: ''
     }
   },
   computed: {
     ...mapState({
       isDark: state => state.localConfig.isDark,
       isVIP: state => state.isVIP
-    })
+    }),
+
+    vipString() {
+      return this.isVIP
+        ? this.expireTime
+          ? '恭喜你，你是月度会员~'
+          : '恭喜你，你已是终身会员~'
+        : '终身会员，现在早鸟价，仅需：￥100'
+    }
   },
   watch: {
     value(val) {
       this.dialogVisible = val
+      if (val) {
+        this.checkIsVip()
+      }
     }
   },
   methods: {
     ...mapMutations(['setIsVIP']),
+
+    checkIsVip() {
+      const purchasedUser = utools.isPurchasedUser()
+      if (purchasedUser && typeof purchasedUser === 'string') {
+        this.expireTime = purchasedUser
+      }
+    },
 
     onClose() {
       this.$emit('change', false)
@@ -148,6 +173,17 @@ export default {
         { goodsId: 'hwtmnyxa5grdr3tlaj1gkkfpguff4cmk' },
         () => {
           this.setIsVIP(true)
+          this.showParty()
+        }
+      )
+    },
+
+    openMonthPay() {
+      utools.openPurchase(
+        { goodsId: '8w2vkwxaaht9lvt3b0q338m0mxwflvu1' },
+        () => {
+          this.setIsVIP(true)
+          this.checkIsVip()
           this.showParty()
         }
       )
@@ -200,6 +236,13 @@ export default {
   &.isDark {
   }
 
+  .expireTime {
+    font-size: 14px;
+    margin-top: -20px;
+    margin-bottom: 20px;
+    color: rgb(145, 90, 66);
+  }
+
   h1 {
     color: rgb(21, 12, 6);
     line-height: 50px;
@@ -214,6 +257,11 @@ export default {
 
   h2 {
     color: rgb(74, 60, 50);
+  }
+
+  .btnList {
+    display: flex;
+    align-items: center;
   }
 
   .vipButton {
@@ -236,6 +284,10 @@ export default {
 
     &:active {
       transform: translateY(-2px);
+    }
+
+    &.minthVipButton {
+      margin-left: 12px;
     }
   }
 
